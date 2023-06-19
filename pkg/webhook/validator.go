@@ -2,9 +2,11 @@ package webhook
 
 import (
 	"context"
+	"net/http"
 
 	"go.uber.org/zap"
 	authv1 "k8s.io/api/authorization/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -69,14 +71,21 @@ func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admis
 			},
 		},
 	}
-
 	v.logger.Info("sar object", zap.Any("sar", sar))
+
+	// Create the SubjectAccessReview object
+	res, err := v.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		v.logger.Error("Failed to create SubjectAccessReview", zap.Error(err))
+		return admission.Errored(http.StatusInternalServerError, err)
+	}
+
+	v.logger.Info("SAR after create call", zap.Any("res", res))
 
 	if sar.Status.Allowed {
 		v.logger.Info("Access allowed")
 		return admission.Allowed("Access allowed")
 	}
-
 	v.logger.Info("Access denied", zap.String("Reason", sar.Status.Reason))
 	return admission.Denied(sar.Status.Reason)
 }
