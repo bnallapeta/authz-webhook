@@ -1,0 +1,15 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: user-validation-webhook
+webhooks:
+  - name: user-validation.example.com
+    rules:
+      - apiGroups:   [""]
+        apiVersions: ["v1"]
+        operations:  ["CREATE", "UPDATE", "DELETE"]
+        resources:   ["pods"]
+    sideEffects: None
+    admissionReviewVersions: ["v1", "v1beta1"]
+    clientConfig:
+      url: "https://f6b9-49-207-247-188.ngrok-free.app/validate"
