@@ -12,4 +12,4 @@ webhooks:
     sideEffects: None
     admissionReviewVersions: ["v1", "v1beta1"]
     clientConfig:
-      url: "https://f1d3-49-207-247-188.ngrok-free.app/validate"
+      url: "https://59fe-49-207-247-188.ngrok-free.app/validate"

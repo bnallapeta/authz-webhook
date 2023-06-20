@@ -57,20 +57,43 @@ func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admis
 		zap.String("Kind", req.Kind.Kind),
 	)
 
-	v.logger.Info("Testing if this is getting printed 3")
+	v.logger.Info("Testing if we can fetch pods")
+
+	pods, err := v.Client.CoreV1().Pods("kube-system").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		panic(err)
+	}
+
+	for _, pod := range pods.Items {
+		v.logger.Sugar().Infof("Pod Name: %s\n", pod.Name)
+	}
+
+	// sar := &authv1.SubjectAccessReview{
+	// 	Spec: authv1.SubjectAccessReviewSpec{
+	// 		User: req.UserInfo.Username,
+	// 		ResourceAttributes: &authv1.ResourceAttributes{
+	// 			Namespace: req.Namespace,
+	// 			Verb:      string(req.Operation),
+	// 			Group:     req.Kind.Group,
+	// 			Version:   req.Kind.Version,
+	// 			Resource:  "pods",
+	// 		},
+	// 	},
+	// }
 
 	sar := &authv1.SubjectAccessReview{
 		Spec: authv1.SubjectAccessReviewSpec{
-			User: req.UserInfo.Username,
+			User: "kubernetes-admin",
 			ResourceAttributes: &authv1.ResourceAttributes{
-				Namespace: req.Namespace,
-				Verb:      string(req.Operation),
-				Group:     req.Kind.Group,
-				Version:   req.Kind.Version,
-				Resource:  req.Kind.Kind,
+				Namespace: "default",
+				Verb:      "create",
+				Group:     "core",
+				Version:   "v1",
+				Resource:  "pods",
 			},
 		},
 	}
+
 	v.logger.Info("sar object", zap.Any("sar", sar))
 
 	// Create the SubjectAccessReview object
@@ -82,10 +105,10 @@ func (v *UserValidator) Handle(ctx context.Context, req admission.Request) admis
 
 	v.logger.Info("SAR after create call", zap.Any("res", res))
 
-	if sar.Status.Allowed {
+	if res.Status.Allowed {
 		v.logger.Info("Access allowed")
 		return admission.Allowed("Access allowed")
 	}
-	v.logger.Info("Access denied", zap.String("Reason", sar.Status.Reason))
-	return admission.Denied(sar.Status.Reason)
+	v.logger.Info("Access denied", zap.String("Reason", res.Status.Reason))
+	return admission.Denied(res.Status.Reason)
 }

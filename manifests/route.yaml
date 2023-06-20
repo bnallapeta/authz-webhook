@@ -1,0 +1,11 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: webhook
+spec:
+  host: webhook.example.com
+  to:
+    kind: Service
+    name: webhook
+  port:
+    targetPort: 9443
